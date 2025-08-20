@@ -1,29 +1,26 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <string>
 #include <vector>
-#include <cctype>
+#include <regex>
 #include <unordered_set>
+
 using namespace std;
 
-unordered_set<string> keywords = {
-    "int", "float", "double", "char", "if", "else", "for", "while", "return", "void"
-};
 
+void detectToken(const string& token) {
+    unordered_set<string> operators = { "+", "-", "*", "/", "=", "==", "!=", "<", "<=", ">", ">=" };
 
-unordered_set<string> operators = {
-    "+", "-", "*", "/", "%", "=", "==", "!=",
-    ">", "<", ">=", "<=", "&&", "||"
-};
-
-bool isValidIdentifier(const string& token) {
-    if (token.empty()) return false;
-    if (!(isalpha(token[0]) || token[0] == '_')) return false;
-    for (int i = 1; i < token.size(); ++i) {
-        if (!(isalnum(token[i]) || token[i] == '_'))
-            return false;
-    }
-    return true;
+    if (token == ";")
+        cout << "[Semicolon] => " << token << endl;
+    else if (operators.count(token))
+        cout << "[Operator] => " << token << endl;
+    else if (regex_match(token, regex("^\\d+$")))
+        cout << "[Number] => " << token << endl;
+    else if (regex_match(token, regex("^[a-zA-Z_][a-zA-Z0-9_]*$")))
+        cout << "[Variable] => " << token << endl;
+    else
+        cout << "[Unknown] => " << token << endl;
 }
 
 vector<string> tokenize(const string& line) {
@@ -31,74 +28,64 @@ vector<string> tokenize(const string& line) {
     string token;
 
     for (size_t i = 0; i < line.size(); ++i) {
-        char ch = line[i];
+        char c = line[i];
 
-        if (isspace(ch)) {
+        if (isspace(c)) {
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
             }
-            continue;
         }
-
-        string twoCharOp = line.substr(i, 2);
-        if (operators.count(twoCharOp)) {
+        else if (ispunct(c)) {
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
             }
-            tokens.push_back(twoCharOp);
-            i++;
-            continue;
-        }
 
-        string oneCharOp(1, ch);
-        if (operators.count(oneCharOp)) {
-            if (!token.empty()) {
-                tokens.push_back(token);
-                token.clear();
+            if (i + 1 < line.size()) {
+                string twoChar = string(1, c) + line[i + 1];
+                unordered_set<string> twoCharOps = { "==", "!=", "<=", ">=" };
+                if (twoCharOps.count(twoChar)) {
+                    tokens.push_back(twoChar);
+                    ++i;
+                    continue;
+                }
             }
-            tokens.push_back(oneCharOp);
-            continue;
-        }
 
-        token += ch;
+            tokens.push_back(string(1, c));
+        }
+        else {
+            token += c;
+        }
     }
 
-    if (!token.empty())
+    if (!token.empty()) {
         tokens.push_back(token);
+    }
 
     return tokens;
 }
 
 int main() {
-    ifstream file("input.cpp");
+    string path = "text.txt";
+    ifstream file(path);
+
     if (!file.is_open()) {
-        cerr << "Error: Cannot open input.cpp!" << endl;
+        cout << "Failed to open file.\n";
         return 1;
     }
 
     string line;
     while (getline(file, line)) {
         vector<string> tokens = tokenize(line);
-
-        for (const string& token : tokens) {
-            if (keywords.count(token)) {
-                cout << token << " → keyword" << endl;
-            } else if (operators.count(token)) {
-                cout << token << " → operator" << endl;
-            } else if (isValidIdentifier(token)) {
-                cout << token << " → valid identifier" << endl;
-            } else if (isdigit(token[0])) {
-                cout << token << " → numeric constant" << endl;
-            } else {
-                cout << token << " → invalid identifier or unknown" << endl;
-            }
+        for (const string& t : tokens) {
+            detectToken(t);
         }
     }
 
     file.close();
     return 0;
 }
+
 
 
