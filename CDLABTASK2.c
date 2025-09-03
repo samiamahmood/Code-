@@ -1,91 +1,56 @@
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <sstream>
 #include <vector>
-#include <regex>
 #include <unordered_set>
-
+#include <cctype>
 using namespace std;
 
 
-void detectToken(const string& token) {
-    unordered_set<string> operators = { "+", "-", "*", "/", "=", "==", "!=", "<", "<=", ">", ">=" };
+unordered_set<string> keywords = {
+    "int", "float", "double", "char", "if", "else", "for", "while",
+    "return", "void";
+};
 
-    if (token == ";")
-        cout << "[Semicolon] => " << token << endl;
-    else if (operators.count(token))
-        cout << "[Operator] => " << token << endl;
-    else if (regex_match(token, regex("^\\d+$")))
-        cout << "[Number] => " << token << endl;
-    else if (regex_match(token, regex("^[a-zA-Z_][a-zA-Z0-9_]*$")))
-        cout << "[Variable] => " << token << endl;
-    else
-        cout << "[Unknown] => " << token << endl;
-}
 
-vector<string> tokenize(const string& line) {
-    vector<string> tokens;
-    string token;
+unordered_set<string> operators = {
+    "+", "-", "*", "/", "%", "=", "==", "!=", "<", "<=", ">", ">=", "&&", "||", "!", "++", "--"
+};
 
-    for (size_t i = 0; i < line.size(); ++i) {
-        char c = line[i];
-
-        if (isspace(c)) {
-            if (!token.empty()) {
-                tokens.push_back(token);
-                token.clear();
-            }
-        }
-        else if (ispunct(c)) {
-            if (!token.empty()) {
-                tokens.push_back(token);
-                token.clear();
-            }
-
-            if (i + 1 < line.size()) {
-                string twoChar = string(1, c) + line[i + 1];
-                unordered_set<string> twoCharOps = { "==", "!=", "<=", ">=" };
-                if (twoCharOps.count(twoChar)) {
-                    tokens.push_back(twoChar);
-                    ++i;
-                    continue;
-                }
-            }
-
-            tokens.push_back(string(1, c));
-        }
-        else {
-            token += c;
-        }
+bool isValidIdentifier(const string &s) {
+    if (s.empty()) return false;
+    if (!(isalpha(s[0]) || s[0] == '_')) return false;
+    for (size_t i = 1; i < s.size(); i++) {
+        if (!(isalnum(s[i]) || s[i] == '_')) return false;
     }
-
-    if (!token.empty()) {
-        tokens.push_back(token);
-    }
-
-    return tokens;
+    return true;
 }
 
 int main() {
-    string path = "text.txt";
-    ifstream file(path);
-
+    ifstream file("input.cpp");
     if (!file.is_open()) {
-        cout << "Failed to open file.\n";
+        cerr << "Error: Could not open file!" << endl;
         return 1;
     }
 
     string line;
     while (getline(file, line)) {
-        vector<string> tokens = tokenize(line);
-        for (const string& t : tokens) {
-            detectToken(t);
+        string token;
+        stringstream ss(line);
+        while (ss >> token) {
+            if (keywords.find(token) != keywords.end()) {
+                cout << token << " : Keyword" << endl;
+            } else if (operators.find(token) != operators.end()) {
+                cout << token << " : Operator" << endl;
+            } else if (isValidIdentifier(token)) {
+                cout << token << " : Valid Identifier" << endl;
+            } else {
+                cout << token << " : Invalid Identifier / Unknown" << endl;
+            }
         }
     }
 
     file.close();
     return 0;
 }
-
-
 
